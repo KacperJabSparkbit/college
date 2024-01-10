@@ -23,8 +23,6 @@ class PeopleComparator;
 template <typename T>
 concept PersonType = std::is_base_of_v<Person, T>;
 
-using PeopleCollection = std::vector<std::shared_ptr<Person>>;
-
 namespace {
     bool wildcardMatch(const std::string& pattern, const std::string& text) {
         std::regex star_replace("\\*");
@@ -149,14 +147,17 @@ class PhDStudent : public Student, public Teacher {
     }
 };
 
-//class PeopleComparator {
-//public:
-//    bool operator()(const std::shared_ptr<Person>& lhs, const std::shared_ptr<Person>& rhs) const {
-//        if (lhs->get_name() == rhs->get_name())
-//            return lhs->get_surname() < rhs->get_surname();
-//        return lhs->get_name() < rhs->get_name();
-//    }
-//};
+class PeopleComparator {
+public:
+    bool operator()(const std::shared_ptr<Person>& lhs, const std::shared_ptr<Person>& rhs) const {
+        if (lhs->get_surname() == rhs->get_surname())
+            return lhs->get_name() < rhs->get_name();
+        return lhs->get_surname() < rhs->get_surname();
+    }
+};
+
+using PeopleCollection = std::set<std::shared_ptr<Person>, PeopleComparator>;
+
 
 class College {
     private:
@@ -244,10 +245,10 @@ public:
         if (person_exists(name, surname))
             return false;
         if (std::is_same_v<T, Teacher>) {
-            people.emplace_back(std::make_shared<Teacher>(name, surname));
+            people.insert(std::make_shared<Teacher>(name, surname));
             return true;
         } else {
-            people.emplace_back(std::make_shared<Student>(name, surname, active));
+            people.insert(std::make_shared<Student>(name, surname, active));
             return true;
         }
     }
