@@ -11,24 +11,25 @@
 #include <vector>
 #include <iostream>
 #include <regex>
+#include <set>
 
 class Course;
 class Person;
 class Student;
 class Teacher;
 class PhDStudent;
+class PeopleComparator;
 
 template <typename T>
 concept PersonType = std::is_base_of_v<Person, T>;
 
-using CoursesCollection = std::vector<std::shared_ptr<Course>>;
 using PeopleCollection = std::vector<std::shared_ptr<Person>>;
 
 namespace {
     bool wildcardMatch(const std::string& pattern, const std::string& text) {
         std::regex star_replace("\\*");
         std::regex questionmark_replace("\\?");
-        std::regex regexPattern(R"(([.^$|()\[\]{}+?\\]))");
+        std::regex regexPattern("([.+^=!:${}()|\\[\\]\\/\\\\])");
 
         auto pattern_escaped = regex_replace(pattern, regexPattern, "\\$1");
 
@@ -39,13 +40,50 @@ namespace {
         std::regex wildcard_regex(wildcard_pattern);
         return regex_match(text, wildcard_regex);
     }
+
 }
+
+class Course {
+private:
+    std::string name;
+    bool active = true;
+public:
+    Course(std::string name, bool active = true) {
+        this->name = std::move(name);
+        this->active = active;
+    }
+
+    std::string get_name() {
+        return name;
+    }
+
+    void change_activeness(bool new_active) {
+        this->active = new_active;
+    }
+
+    bool is_active() {
+        return active;
+    }
+};
+
+namespace {
+    class CourseComparator {
+    public:
+        CourseComparator() = default;
+        bool operator()(const std::shared_ptr<Course>& lhs, const std::shared_ptr<Course>& rhs) const {
+            return lhs->get_name() < rhs->get_name();
+        }
+    };
+}
+
+using CoursesCollection = std::set<std::shared_ptr<Course>, CourseComparator>;
 
 class Person {
     private:
     std::string name;
     std::string surname;
 
+protected:
     public:
     Person(std::string name, std::string surname) {
         this->name = std::move(name);
@@ -111,29 +149,14 @@ class PhDStudent : public Student, public Teacher {
     }
 };
 
-class Course {
-private:
-    std::string name;
-    bool active = true;
-public:
-    Course(std::string name, bool active = true) {
-        this->name = std::move(name);
-        this->active = active;
-    }
-
-    std::string get_name() {
-        return name;
-    }
-
-    void change_activeness(bool new_active) {
-        this->active = new_active;
-    }
-
-    bool is_active() {
-        return active;
-    }
-};
-
+//class PeopleComparator {
+//public:
+//    bool operator()(const std::shared_ptr<Person>& lhs, const std::shared_ptr<Person>& rhs) const {
+//        if (lhs->get_name() == rhs->get_name())
+//            return lhs->get_surname() < rhs->get_surname();
+//        return lhs->get_name() < rhs->get_name();
+//    }
+//};
 
 class College {
     private:
@@ -205,9 +228,7 @@ public:
     bool remove_course(Course course) {
         if (!course_exists(course.get_name()))
             return false;
-        courses.erase(std::remove_if(courses.begin(), courses.end(), [&course](auto const &c) {
-            return c->get_name() == course.get_name();
-        }), courses.end());
+//        courses.erase(course);
         return true;
     }
 
