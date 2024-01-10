@@ -10,12 +10,36 @@
 #include <utility>
 #include <vector>
 #include <iostream>
+#include <regex>
 
 class Course;
 class Person;
+class Student;
+class Teacher;
+class PhDStudent;
+
+template <typename T>
+concept PersonType = std::is_base_of_v<Person, T>;
 
 using CoursesCollection = std::vector<std::shared_ptr<Course>>;
 using PeopleCollection = std::vector<std::shared_ptr<Person>>;
+
+namespace {
+    bool wildcardMatch(const std::string& pattern, const std::string& text) {
+        std::regex star_replace("\\*");
+        std::regex questionmark_replace("\\?");
+        std::regex regexPattern(R"(([.^$|()\[\]{}+?\\]))");
+
+        auto pattern_escaped = regex_replace(pattern, regexPattern, "\\$1");
+
+        auto wildcard_pattern = regex_replace(
+                regex_replace(pattern_escaped, star_replace, ".*"),
+                questionmark_replace, ".");
+
+        std::regex wildcard_regex(wildcard_pattern);
+        return regex_match(text, wildcard_regex);
+    }
+}
 
 class Person {
     private:
@@ -44,7 +68,8 @@ class Student : virtual public Person {
     bool active = true;
     CoursesCollection courses;
     public:
-    Student(std::string name, std::string surname, bool active = true) : Person(std::move(name), std::move(surname)) {
+    Student(std::string name, std::string surname, bool active = true) :
+        Person(std::move(name), std::move(surname)) {
         this->active = active;
     }
 
@@ -52,8 +77,12 @@ class Student : virtual public Person {
         return active;
     }
 
-    const CoursesCollection& get_courses() const {
+    virtual const CoursesCollection& get_courses() const {
         return courses;
+    }
+
+    void change_activeness(bool activeness) {
+        active = activeness;
     }
 };
 
@@ -61,9 +90,10 @@ class Teacher : virtual public Person {
     private:
     CoursesCollection courses;
     public:
-    Teacher(std::string name, std::string surname) : Person(std::move(name), std::move(surname)) {}
+    Teacher(std::string name, std::string surname) :
+        Person(std::move(name), std::move(surname)) {}
 
-    virtual const CoursesCollection& get_courses() const {
+    const CoursesCollection& get_courses() const {
         return courses;
     }
 };
@@ -95,6 +125,10 @@ public:
         return name;
     }
 
+    void change_activeness(bool new_active) {
+        this->active = new_active;
+    }
+
     bool is_active() {
         return active;
     }
@@ -105,6 +139,31 @@ class College {
     private:
     PeopleCollection people;
     CoursesCollection courses;
+
+    bool person_exists(const std::string& name, const std::string& surname) {
+        for (auto const &p : people) {
+            if (p->get_name() == name && p->get_surname() == surname)
+                return true;
+        }
+        return false;
+    }
+
+    bool course_exists(const std::string& name) {
+        for (auto const &c : courses) {
+            if (c->get_name() == name)
+                return true;
+        }
+        return false;
+    }
+
+    Course* find_course(const std::string& name) {
+        for (auto const &c : courses) {
+            if (c->get_name() == name)
+                return c.get();
+        }
+        return nullptr;
+    }
+
 public:
     template <typename T>
     auto find(std::string name, std::string surname) {
@@ -112,36 +171,65 @@ public:
         std::vector<T*> result;
 
         for (const auto& person : people) {
-            T* derivedPerson = dynamic_cast<T*>(person.get());
-            if (derivedPerson != nullptr) {
-                result.push_back(const_cast<T*>(derivedPerson));
+            auto n = person->get_name();
+            auto s = person->get_surname();
+            if (wildcardMatch(name, n) && wildcardMatch(surname, s)) {
+                T* derivedPerson = dynamic_cast<T*>(person.get());
+                if (derivedPerson != nullptr) {
+                    result.push_back(const_cast<T*>(derivedPerson));
+                }
             }
         }
         return result;
     }
 
-//    template<typename T>
-//    auto find(Course *course) {
-//        return std::vector<T *>();
-//    }
-
     bool add_course(std::string name, bool mandatory = true);
 
-    std::vector<Course *> find_courses(const std::string& pattern);
+    std::vector<Course *> find_courses(const std::string& pattern) {
+        std::vector<Course *> result;
+        for (const auto& course : courses) {
+            if (wildcardMatch(pattern, course->get_name())) {
+                result.push_back(course.get());
+            }
+        }
+        return result;
+    }
 
-    bool change_course_activeness(Course course, bool active);
+    bool change_course_activeness(Course course, bool active) {
+        if (!course_exists(course.get_name()))
+            return false;
+        course.change_activeness(active);
+        return true;
+    }
 
-    bool remove_course(Course course);
+    bool remove_course(Course course) {
+        if (!course_exists(course.get_name()))
+            return false;
+        courses.erase(std::remove_if(courses.begin(), courses.end(), [&course](auto const &c) {
+            return c->get_name() == course.get_name();
+        }), courses.end());
+        return true;
+    }
 
-    bool change_student_activeness(Student student, bool active);
+    bool change_student_activeness(Student student, bool active) {
+        if (!person_exists(student.get_name(), student.get_surname()))
+            return false;
+        student.change_activeness(active);
+        return true;
+    }
 
-    template <typename T>
-    bool add_person(std::string name, std::string surname, bool active = true);
-
-    template <typename T>
-    typename std::enable_if<std::is_base_of<T, Person>::value, bool>::type
-    add_person(std::string name, std::string surname, bool active = true);
-
+    template <PersonType T>
+    bool add_person(std::string name, std::string surname, bool active = true) {
+        if (person_exists(name, surname))
+            return false;
+        if (std::is_same_v<T, Teacher>) {
+            people.emplace_back(std::make_shared<Teacher>(name, surname));
+            return true;
+        } else {
+            people.emplace_back(std::make_shared<Student>(name, surname, active));
+            return true;
+        }
+    }
 
     template <typename T>
     bool assign_course(T person, Course course);
