@@ -174,8 +174,8 @@ class College {
     PeopleCollection people;
     CoursesCollection courses;
 
-    std::map<std::string, PeopleCollection> course_to_student;
-    std::map<std::string, PeopleCollection> course_to_teacher;
+    std::map<std::shared_ptr<Course>, PeopleCollection> course_to_student;
+    std::map<std::shared_ptr<Course>, PeopleCollection> course_to_teacher;
 
     bool person_exists(const std::string& name, const std::string& surname) {
         for (auto const &p : people) {
@@ -197,6 +197,22 @@ class College {
         for (auto const &c : courses) {
             if (c->get_name() == name)
                 return c;
+        }
+        return nullptr;
+    }
+
+    template <typename T>
+    std::shared_ptr<Person> _find(std::string name, std::string surname) {
+        static_assert(std::is_base_of_v<Person, T>);
+        for (const auto& person : people) {
+            auto n = person->get_name();
+            auto s = person->get_surname();
+            if (n == name && s == surname) {
+                T* derivedPerson = dynamic_cast<T*>(person.get());
+                if (derivedPerson != nullptr) {
+                    return person;
+                }
+            }
         }
         return nullptr;
     }
@@ -270,12 +286,17 @@ public:
     }
 
     template <typename T>
-    bool assign_course(T person, Course *course){
+    bool assign_course(T *person, Course *course){
         auto c = find_course(course->get_name());
         if (c == nullptr)
             return false;
-        if (std::is_same_v<T, Student>) {
-            auto t = find<Student>(person->get_name(), person->get_surname());
+        if constexpr (std::is_same_v<T, Student>) {
+            auto t = _find<Student>(person->get_name(), person->get_surname());
+            course_to_student[c].insert(t);
+            return true;
+        } else if constexpr (std::is_same_v<T, Teacher>) {
+            auto t = _find<Teacher>(person->get_name(), person->get_surname());
+            course_to_teacher[c].insert(t);
             return true;
         }
     }
