@@ -87,14 +87,14 @@ int main() {
     auto geometry = *college.find_courses("Geometry").begin();
     auto history = *college.find_courses("History").begin();
 
-//    assert(college.assign_course(jan_kowalski, cxx));
-//    assert(college.assign_course(jan_kowalski, algebra));
-//    assert(college.assign_course(jan_kowalski, analysis));
-//    assert(college.assign_course<Student>(alicja_fiszer, cxx));
-//    assert(college.assign_course<Teacher>(jakub_kubanski, cxx));
-//    assert(college.assign_course(jacek_chlebus, cxx));
-//    assert(college.assign_course(jacek_chlebus, algebra));
-//    assert(college.assign_course(jacek_chlebus, analysis));
+    assert(college.assign_course(jan_kowalski, cxx));
+    assert(college.assign_course(jan_kowalski, algebra));
+    assert(college.assign_course(jan_kowalski, analysis));
+    assert(college.assign_course<Student>(alicja_fiszer, cxx));
+    assert(college.assign_course<Teacher>(jakub_kubanski, cxx));
+    assert(college.assign_course(jacek_chlebus, cxx));
+    assert(college.assign_course(jacek_chlebus, algebra));
+    assert(college.assign_course(jacek_chlebus, analysis));
 //
 //    assert(college.find<Student>(cxx).size() == 2);
 //    assert(college.find<Student>(algebra).size() == 1);

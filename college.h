@@ -12,6 +12,7 @@
 #include <iostream>
 #include <regex>
 #include <set>
+#include <map>
 
 class Course;
 class Person;
@@ -42,9 +43,13 @@ namespace {
 }
 
 class Course {
+    friend class College;
 private:
     std::string name;
     bool active = true;
+    void change_activeness(bool new_active) {
+        this->active = new_active;
+    }
 public:
     Course(std::string name, bool active = true) {
         this->name = std::move(name);
@@ -53,10 +58,6 @@ public:
 
     std::string get_name() {
         return name;
-    }
-
-    void change_activeness(bool new_active) {
-        this->active = new_active;
     }
 
     bool is_active() {
@@ -75,6 +76,11 @@ namespace {
 }
 
 using CoursesCollection = std::set<std::shared_ptr<Course>, CourseComparator>;
+
+//interface for getting courses
+class CollegePerson {
+    virtual const CoursesCollection& get_courses() const = 0;
+};
 
 class Person {
     private:
@@ -99,10 +105,15 @@ protected:
     }
 };
 
-class Student : virtual public Person {
+class Student : virtual public Person, virtual public CollegePerson {
+    friend class College;
     private:
     bool active = true;
     CoursesCollection courses;
+    protected:
+    void change_activeness(bool activeness) {
+        active = activeness;
+    }
     public:
     Student(std::string name, std::string surname, bool active = true) :
         Person(std::move(name), std::move(surname)) {
@@ -113,23 +124,20 @@ class Student : virtual public Person {
         return active;
     }
 
-    virtual const CoursesCollection& get_courses() const {
+    const CoursesCollection& get_courses() const override {
         return courses;
-    }
-
-    void change_activeness(bool activeness) {
-        active = activeness;
     }
 };
 
-class Teacher : virtual public Person {
+class Teacher : virtual public Person, virtual public CollegePerson {
+    friend class College;
     private:
     CoursesCollection courses;
     public:
     Teacher(std::string name, std::string surname) :
         Person(std::move(name), std::move(surname)) {}
 
-    const CoursesCollection& get_courses() const {
+    virtual const CoursesCollection& get_courses() const {
         return courses;
     }
 };
@@ -142,7 +150,7 @@ class PhDStudent : public Student, public Teacher {
         Person(name, surname)
         {};
 
-    const CoursesCollection & get_courses() const override {
+    const CoursesCollection& get_courses() const override {
         return Teacher::get_courses();
     }
 };
@@ -160,9 +168,14 @@ using PeopleCollection = std::set<std::shared_ptr<Person>, PeopleComparator>;
 
 
 class College {
+    friend class Student;
+    friend class Course;
     private:
     PeopleCollection people;
     CoursesCollection courses;
+
+    std::map<std::string, PeopleCollection> course_to_student;
+    std::map<std::string, PeopleCollection> course_to_teacher;
 
     bool person_exists(const std::string& name, const std::string& surname) {
         for (auto const &p : people) {
@@ -180,10 +193,10 @@ class College {
         return false;
     }
 
-    Course* find_course(const std::string& name) {
+    std::shared_ptr<Course> find_course(const std::string& name) {
         for (auto const &c : courses) {
             if (c->get_name() == name)
-                return c.get();
+                return c;
         }
         return nullptr;
     }
@@ -247,14 +260,36 @@ public:
         if (std::is_same_v<T, Teacher>) {
             people.insert(std::make_shared<Teacher>(name, surname));
             return true;
-        } else {
+        } else if (std::is_same_v<T, Student>) {
             people.insert(std::make_shared<Student>(name, surname, active));
+            return true;
+        } else {
+            people.insert(std::make_shared<PhDStudent>(name, surname, active));
             return true;
         }
     }
 
     template <typename T>
-    bool assign_course(T person, Course course);
+    bool assign_course(T person, Course *course){
+        auto c = find_course(course->get_name());
+        if (c == nullptr)
+            return false;
+        if (std::is_same_v<T, Student>) {
+            auto t = find<Student>(person->get_name(), person->get_surname());
+            return true;
+        }
+    }
+
+    template <typename T>
+    bool assign_course(PhDStudent *person, Course *course){
+        if constexpr (std::is_same_v<T, Student>) {
+            std::cout << "Student: " << person->get_name() << std::endl;
+            return true;
+        } else if constexpr (std::is_same_v<T, Teacher>) {
+            std::cout << "Teacher: " << person->get_name() << std::endl;
+            return true;
+        }
+    }
 };
 
 
