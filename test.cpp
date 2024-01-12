@@ -2,18 +2,13 @@
 #include <iostream>
 
 int main() {
-    Course c("zupa", false);
-    std::cout << c.get_name() << std::endl;
-    std::cout << c.is_active() << std::endl;
-    c.change_activeness(false);
-    std::cout << c.is_active() << std::endl;
-
-    Student s("Jan", "XIV");
-    std::cout << s.get_name() << " " << s.get_surname() << std::endl;
-
-    Teacher t("Bob", "VII");
-    std::cout << t.get_name() << " " << t.get_surname() << std::endl;
-
-    PhDStudent p("Tom", "MXII");
-    std::cout << p.get_name() << " " << p.get_surname() << std::endl;
+    College kol;
+    assert(kol.add_person<Student>("Jan", "1"));
+    assert(kol.add_person<Teacher>("Jan", "2"));
+    assert(kol.add_person<PhDStudent>("Jan", "3"));
+    assert(kol.add_person<Student>("Jan", "4"));
+    assert(!kol.add_person<Student>("Jan", "2"));
+    auto jan1 = kol.find<Student>("Jan", "1").begin();
+    //std::cout << jan1->get_name() << jan1->get_surname() << std::endl;
+    std::cout << jan1->use_count() << std::endl;
 }

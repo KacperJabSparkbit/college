@@ -53,6 +53,7 @@ private:
     std::string name;
     bool active = true;
     College* college;
+    PeopleCollection<Person> all_assigned;
     PeopleCollection<Student> students;
     PeopleCollection<Teacher> teachers;
 
@@ -98,7 +99,8 @@ public:
     bool is_active() const;
     const CoursesCollection& get_courses() const;
     void change_activeness(bool activeness);
-    int bob;
+
+    friend College;
 };
 
 class Teacher : virtual public Person {
@@ -108,7 +110,8 @@ private:
 public:
     Teacher(std::string name, std::string surname);
     const CoursesCollection& get_courses() const;
-    int bob;
+
+    friend College;
 };
 
 class PhDStudent : public Student, public Teacher {
@@ -128,6 +131,9 @@ class College {
 
     template<PersonType T>
     void append_matching(PeopleCollection<T>& appendable, int containrer_index, std::string name_pattern, std::string surname_pattern);
+
+    template<CollegeMemberNonPhD T>
+    bool assign_course_inner(std::shared_ptr<Person> person, std::shared_ptr<Course> course);
 
 public:
     template <CollegeMember T>

@@ -112,8 +112,7 @@ PhDStudent::PhDStudent(std::string name, std::string surname, bool active) :
 //College:
 bool College::person_name_unique(std::shared_ptr<Person> person) {
     for (int i : {0, 1, 2}) {
-        auto iter = people[i].find(person);
-        if (iter != people[i].end()) {
+        if (people[i].contains(person)) {
             return false;
         }
     }
@@ -214,7 +213,7 @@ CoursesCollection College::find_courses(const std::string& pattern) {
 template<>
 PeopleCollection<Student> College::find<Student>(std::shared_ptr<Course> course) {
     if (course->college != this) {
-        throw 42;
+        throw 42; //exception??
     }
     return course->students;
 }
@@ -222,14 +221,64 @@ PeopleCollection<Student> College::find<Student>(std::shared_ptr<Course> course)
 template<>
 PeopleCollection<Teacher> College::find<Teacher>(std::shared_ptr<Course> course) {
     if (course->college != this) {
-        throw 44;
+        throw 44; //exception??
     }
     return course->teachers;
 }
 
 bool College::change_course_activeness(std::shared_ptr<Course> course, bool active) {
     if (course->college != this) {
-        throw 45;
+        return false;
     }
-    course->change_activeness(true);
+    course->change_activeness(active);
+    return true;
+}
+
+bool College::remove_course(std::shared_ptr<Course> course) {
+    if (course->college != this) {
+        return false;
+    }
+    course->change_activeness(false);
+    course->college = nullptr;
+    courses.erase(course);
+//usun z uczestnukuw ze uczeszczaja
+    return true;
+}
+
+bool College::change_student_activeness(std::shared_ptr<Student> student, bool active) {
+    if (student->college != this) {
+        return false;
+    }
+    student->change_activeness(active);
+    return true;
+}
+
+template<CollegeMemberNonPhD T>
+bool College::assign_course_inner(std::shared_ptr<Person> person, std::shared_ptr<Course> course) {
+    if (person->college != this || course->college != this) {
+        throw "exception";
+    }
+    
+    //osoba nie moze byc studentem i nauczycielem tym samym w kursie??
+    if (course->all_assigned.contains(person)) {
+        return false;
+    }
+
+    course->all_assigned.emplace(person);
+    if constexpr (std::is_same_v<Student, T>) {
+        std::dynamic_pointer_cast<Student>(person)->courses.emplace(course);
+        course->students.emplace(std::dynamic_pointer_cast<Student>(person));
+    } else {
+        std::dynamic_pointer_cast<Teacher>(person)->courses.emplace(course);
+        course->teachers.emplace(std::dynamic_pointer_cast<Teacher>(person));
+    }
+    
+    return true;
+}
+
+template<>
+bool College::assign_course<Student>(std::shared_ptr<Student> person, std::shared_ptr<Course> course) {
+    if (!person->is_active()) {
+        throw "exception";
+    }
 }
