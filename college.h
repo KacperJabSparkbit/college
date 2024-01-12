@@ -12,22 +12,38 @@
 #include <regex>
 #include <set>
 #include <assert.h> //
+#include <map>
 
 class Course;
 class Person;
 class Student;
 class Teacher;
 class PhDStudent;
+class College;
 
 
 template <typename T>
-concept PersonType = std::is_base_of_v<Person, T>;
+concept CollegeMemberNonPhD = std::is_same_v<Student, T> || std::is_same_v<Teacher, T>;
 
 template <typename T>
-concept CollegeMember = std::is_base_of_v<Student, T> || std::is_base_of_v<Teacher, T>;
+concept CollegeMember = CollegeMemberNonPhD<T> || std::is_same_v<PhDStudent, T>;
 
 template <typename T>
-concept CollegeMemberNonPhD = (std::is_base_of_v<Student, T> || std::is_base_of_v<Teacher, T>) && !std::is_same_v<PhDStudent, T>;
+concept PersonType = CollegeMember<T> || std::is_same_v<Person, T>;
+
+
+class PeopleComparator {
+public:
+    bool operator()(const std::shared_ptr<Person>& lhs, const std::shared_ptr<Person>& rhs) const;
+};
+template <PersonType T>
+using PeopleCollection = std::set<std::shared_ptr<T>, PeopleComparator>;
+
+class CourseComparator {
+public:
+    bool operator()(const std::shared_ptr<Course>& lhs, const std::shared_ptr<Course>& rhs) const;
+};
+using CoursesCollection = std::set<std::shared_ptr<Course>, CourseComparator>;
 
 
 
@@ -36,49 +52,41 @@ class Course {
 private:
     std::string name;
     bool active = true;
+    College* college;
+    PeopleCollection<Student> students;
+    PeopleCollection<Teacher> teachers;
+
 public:
     Course(std::string name, bool active = true);
     std::string get_name() const;
     void change_activeness(bool new_active);
     bool is_active() const;
+
+    friend College;
 };
-
-
-class CourseComparator {
-public:
-    CourseComparator() = default;
-    bool operator()(const std::shared_ptr<Course>& lhs, const std::shared_ptr<Course>& rhs) const {
-        return lhs->get_name() < rhs->get_name();
-    }
-};
-
-using CoursesCollection = std::set<std::shared_ptr<Course>, CourseComparator>;
 
 
 class Person {
 private:
     std::string name;
     std::string surname;
-
 protected:
+    College* college = nullptr;
+
 public:
     Person(std::string name, std::string surname);
     std::string get_name() const;
     std::string get_surname() const;
     virtual ~Person() = default;
+
+    friend College;
 };
 
-class PeopleComparator {
-public:
-    bool operator()(const std::shared_ptr<Person>& lhs, const std::shared_ptr<Person>& rhs) const {
-        if (lhs->get_surname() == rhs->get_surname())
-            return lhs->get_name() < rhs->get_name();
-        return lhs->get_surname() < rhs->get_surname();
-    }
-};
 
-template <PersonType T>
-using PeopleCollection = std::set<std::shared_ptr<T>, PeopleComparator>;
+
+
+
+
 
 class Student : virtual public Person {
 private:
@@ -90,6 +98,7 @@ public:
     bool is_active() const;
     const CoursesCollection& get_courses() const;
     void change_activeness(bool activeness);
+    int bob;
 };
 
 class Teacher : virtual public Person {
@@ -99,26 +108,26 @@ private:
 public:
     Teacher(std::string name, std::string surname);
     const CoursesCollection& get_courses() const;
+    int bob;
 };
 
 class PhDStudent : public Student, public Teacher {
 public:
     PhDStudent(std::string name, std::string surname, bool active = true);
-    const CoursesCollection& get_courses() const;
+    //const CoursesCollection& get_courses() const;
 };
 
 class College {
     private:
-    PeopleCollection<Student> students;
-    PeopleCollection<Teacher> teachers;
-    PeopleCollection<PhDStudent> phd_students;
+
+    PeopleCollection<Person> people[3];
     CoursesCollection courses;
 
-    bool person_exists(const std::string& name, const std::string& surname);
+    bool person_name_unique(std::shared_ptr<Person> person);
+    bool try_add_person(int cointainer_index, std::shared_ptr<Person> person);
 
-    bool course_exists(const std::string& name);
-
-    Course* find_course(const std::string& name);
+    template<PersonType T>
+    void append_matching(PeopleCollection<T>& appendable, int containrer_index, std::string name_pattern, std::string surname_pattern);
 
 public:
     template <CollegeMember T>
