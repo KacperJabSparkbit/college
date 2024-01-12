@@ -241,7 +241,15 @@ bool College::remove_course(std::shared_ptr<Course> course) {
     course->change_activeness(false);
     course->college = nullptr;
     courses.erase(course);
-//usun z uczestnukuw ze uczeszczaja
+
+    for (auto i : course->students) {
+        i->courses.erase(course);
+    }
+
+    for (auto i : course->teachers) {
+        i->courses.erase(course);
+    }
+
     return true;
 }
 
@@ -281,4 +289,10 @@ bool College::assign_course<Student>(std::shared_ptr<Student> person, std::share
     if (!person->is_active()) {
         throw "exception";
     }
+    return assign_course_inner<Student>(person, course);
+}
+
+template<>
+bool College::assign_course<Teacher>(std::shared_ptr<Teacher> person, std::shared_ptr<Course> course) {
+    return assign_course_inner<Teacher>(person, course);
 }
