@@ -228,14 +228,14 @@ public:
     template <typename T>
     auto find(std::string name, std::string surname) {
         static_assert(std::is_base_of_v<Person, T>);
-        std::vector<T*> result;
-        for (const auto& person : people) {
+        std::vector<std::shared_ptr<T>> result;
+        for (auto person : people) {
             auto n = person->get_name();
             auto s = person->get_surname();
             if (wildcardMatch(name, n) && wildcardMatch(surname, s)) {
                 T* derivedPerson = dynamic_cast<T*>(person.get());
                 if (derivedPerson != nullptr) {
-                    result.push_back(const_cast<T*>(derivedPerson));
+                    result.push_back(std::dynamic_pointer_cast<T>(person));
                 }
             }
         }
@@ -243,7 +243,7 @@ public:
     }
 
     template <typename T>
-    auto find(Course *course) {
+    auto find(std::shared_ptr<Course> course) {
         static_assert(std::is_base_of_v<Person, T>);
         std::vector<T*> result;
         auto c = find_course(course->get_name());
@@ -270,34 +270,35 @@ public:
 
     bool add_course(std::string name, bool mandatory = true);
 
-    std::vector<Course *> find_courses(const std::string& pattern) {
-        std::vector<Course *> result;
+    CoursesCollection find_courses(const std::string& pattern) {
+        CoursesCollection result;
         for (const auto& course : courses) {
             if (wildcardMatch(pattern, course->get_name())) {
-                result.push_back(course.get());
+                result.insert(course);
             }
         }
         return result;
     }
 
-    bool change_course_activeness(Course course, bool active) {
-        if (!course_exists(course.get_name()))
+    bool change_course_activeness(std::shared_ptr<Course> course, bool active) {
+        if (!course_exists(course->get_name()))
             return false;
-        course.change_activeness(active);
+        course->change_activeness(active);
         return true;
     }
 
-    bool remove_course(Course course) {
-        if (!course_exists(course.get_name()))
+    bool remove_course(std::shared_ptr<Course> course) {
+        if (!course_exists(course->get_name()))
             return false;
-//        courses.erase(course);
+        course->change_activeness(false);
+        courses.erase(course);
         return true;
     }
 
-    bool change_student_activeness(Student student, bool active) {
-        if (!person_exists(student.get_name(), student.get_surname()))
+    bool change_student_activeness(std::shared_ptr<Student> student, bool active) {
+        if (!person_exists(student->get_name(), student->get_surname()))
             return false;
-        student.change_activeness(active);
+        student->change_activeness(active);
         return true;
     }
 
@@ -318,17 +319,26 @@ public:
     }
 
     template <typename T>
-    bool assign_course(T *person, Course *course){
+    bool assign_course(std::shared_ptr<T> person, std::shared_ptr<Course> course){
         auto c = find_course(course->get_name());
-        if (c == nullptr)
-            return false;
+        if (c == nullptr || c != course)
+            throw std::runtime_error("Non-existing course.");
+        if (!(*c).is_active()) {
+            throw std::runtime_error("Incorrect operation on an inactive course");
+        }
         if constexpr (std::is_same_v<T, Student>) {
             auto t = _find<Student>(person->get_name(), person->get_surname());
+            if (t == nullptr || t != person)
+                throw std::runtime_error("Non-existing person.");
+            if ((*t).is_active() == false)
+                throw std::runtime_error("Incorrect operation for an inactive student");
             course_to_student[c].insert(t);
             (*t).Student::add_course(c);
             return true;
         } else if constexpr (std::is_same_v<T, Teacher>) {
             auto t = _find<Teacher>(person->get_name(), person->get_surname());
+            if (t == nullptr || t != person)
+                throw std::runtime_error("Non-existing person.");
             course_to_teacher[c].insert(t);
             (*t).Teacher::add_course(c);
             return true;
@@ -336,11 +346,11 @@ public:
     }
 
     template <typename T>
-    bool assign_course(PhDStudent *person, Course *course){
+    bool assign_course(std::shared_ptr<PhDStudent> person,  std::shared_ptr<Course> course){
         if constexpr (std::is_same_v<T, Student>) {
-            return assign_course((Student*)person, course);
+            return assign_course((std::shared_ptr<Student>)person, course);
         } else if constexpr (std::is_same_v<T, Teacher>) {
-            return assign_course((Teacher*)person, course);
+            return assign_course((std::shared_ptr<Teacher>)person, course);
         }
     }
 };

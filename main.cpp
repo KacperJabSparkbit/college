@@ -111,65 +111,65 @@ int main() {
     for (auto const &c : jacek_courses)
         std::clog << c->get_name() << '\n';
 
-//    assert(algebra->is_active() == true);
-//    college.change_course_activeness(algebra, false);
-//    assert(algebra->is_active() == false);
+    assert(algebra->is_active() == true);
+    college.change_course_activeness(algebra, false);
+    assert(algebra->is_active() == false);
 
-//    assert(jan_kowalski->is_active() == true);
-//    college.change_student_activeness(jan_kowalski, false);
-//    assert(jan_kowalski->is_active() == false);
-//
-//    try {
-//        college.assign_course(jan_kowalski, history);
-//        assert(false);
-//    } catch (std::exception const & e) {
-//        std::clog << e.what() << std::endl;
-//    }
-//
-//    try {
-//        college.assign_course(pawel_kowalski, cxx);
-//        assert(false);
-//    } catch (std::exception const & e) {
-//        std::clog << e.what() << std::endl;
-//    }
-//
-//    try {
-//        college.assign_course(jacek_chlebus, history);
-//        assert(false);
-//    } catch (std::exception const & e) {
-//        std::clog << e.what() << std::endl;
-//    }
-//
-//    try {
-//        auto jack = std::make_shared<Student>("Jack", "London");
-//        college.assign_course(jack, cxx);
-//        assert(false);
-//    } catch (std::exception const & e) {
-//        std::clog << e.what() << std::endl;
-//    }
-//
-//    try {
-//        auto jan_kowalski2 = std::make_shared<Student>("Jan", "Kowalski");
-//        college.assign_course(jan_kowalski2, cxx);
-//        assert(false);
-//    } catch (std::exception const & e) {
-//        std::clog << e.what() << std::endl;
-//    }
-//
-//    try {
-//        auto cxx2 = std::make_shared<Course>("C++");
-//        college.assign_course(jan_kowalski, cxx2);
-//        assert(false);
-//    } catch (std::exception const & e) {
-//        std::clog << e.what() << std::endl;
-//    }
-//
-//    assert((*alicja_fiszer->Student::get_courses().begin())->get_name() == "C++");
-//    assert(cxx->is_active() == true);
-//    assert(college.remove_course(cxx));
-//    assert(!college.change_course_activeness(cxx, true));
-//    assert(cxx->is_active() == false);
-//    assert(college.find_courses("C++").empty());
-//    assert((*alicja_fiszer->Student::get_courses().begin())->get_name() == "C++");
-//    assert(jacek_chlebus->get_courses().count(cxx) == 1);
+    assert(jan_kowalski->is_active() == true);
+    college.change_student_activeness(jan_kowalski, false);
+    assert(jan_kowalski->is_active() == false);
+
+    try {
+        college.assign_course(jan_kowalski, history);
+        assert(false);
+    } catch (std::exception const & e) {
+        std::clog << e.what() << std::endl;
+    }
+
+    try {
+        college.assign_course(pawel_kowalski, cxx);
+        assert(false);
+    } catch (std::exception const & e) {
+        std::clog << e.what() << std::endl;
+    }
+
+    try {
+        college.assign_course(jacek_chlebus, history);
+        assert(false);
+    } catch (std::exception const & e) {
+        std::clog << e.what() << std::endl;
+    }
+
+    try {
+        auto jack = std::make_shared<Student>("Jack", "London");
+        college.assign_course(jack, cxx);
+        assert(false);
+    } catch (std::exception const & e) {
+        std::clog << e.what() << std::endl;
+    }
+
+    try {
+        auto jan_kowalski2 = std::make_shared<Student>("Jan", "Kowalski");
+        college.assign_course(jan_kowalski2, cxx);
+        assert(false);
+    } catch (std::exception const & e) {
+        std::clog << e.what() << std::endl;
+    }
+
+    try {
+        auto cxx2 = std::make_shared<Course>("C++");
+        college.assign_course(jan_kowalski, cxx2);
+        assert(false);
+    } catch (std::exception const & e) {
+        std::clog << e.what() << std::endl;
+    }
+
+    assert((*alicja_fiszer->Student::get_courses().begin())->get_name() == "C++");
+    assert(cxx->is_active() == true);
+    assert(college.remove_course(cxx));
+    assert(!college.change_course_activeness(cxx, true));
+    assert(cxx->is_active() == false);
+    assert(college.find_courses("C++").empty());
+    assert((*alicja_fiszer->Student::get_courses().begin())->get_name() == "C++");
+    assert(jacek_chlebus->get_courses().count(cxx) == 1);
 }
