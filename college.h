@@ -114,6 +114,9 @@ class Student : virtual public Person, virtual public CollegePerson {
     void change_activeness(bool activeness) {
         active = activeness;
     }
+    void add_course(const std::shared_ptr<Course>& course) {
+        courses.insert(course);
+    }
     public:
     Student(std::string name, std::string surname, bool active = true) :
         Person(std::move(name), std::move(surname)) {
@@ -133,6 +136,9 @@ class Teacher : virtual public Person, virtual public CollegePerson {
     friend class College;
     private:
     CoursesCollection courses;
+    void add_course(const std::shared_ptr<Course>& course) {
+        courses.insert(course);
+    }
     public:
     Teacher(std::string name, std::string surname) :
         Person(std::move(name), std::move(surname)) {}
@@ -202,16 +208,17 @@ class College {
     }
 
     template <typename T>
-    std::shared_ptr<Person> _find(std::string name, std::string surname) {
+    std::shared_ptr<T> _find(std::string name, std::string surname) {
         static_assert(std::is_base_of_v<Person, T>);
         for (const auto& person : people) {
             auto n = person->get_name();
             auto s = person->get_surname();
             if (n == name && s == surname) {
-                T* derivedPerson = dynamic_cast<T*>(person.get());
-                if (derivedPerson != nullptr) {
-                    return person;
-                }
+//                T* derivedPerson = dynamic_cast<T*>(person.get());
+//                if (derivedPerson != nullptr) {
+//                    return person;
+//                }
+                return std::dynamic_pointer_cast<T>(person);
             }
         }
         return nullptr;
@@ -222,11 +229,36 @@ public:
     auto find(std::string name, std::string surname) {
         static_assert(std::is_base_of_v<Person, T>);
         std::vector<T*> result;
-
         for (const auto& person : people) {
             auto n = person->get_name();
             auto s = person->get_surname();
             if (wildcardMatch(name, n) && wildcardMatch(surname, s)) {
+                T* derivedPerson = dynamic_cast<T*>(person.get());
+                if (derivedPerson != nullptr) {
+                    result.push_back(const_cast<T*>(derivedPerson));
+                }
+            }
+        }
+        return result;
+    }
+
+    template <typename T>
+    auto find(Course *course) {
+        static_assert(std::is_base_of_v<Person, T>);
+        std::vector<T*> result;
+        auto c = find_course(course->get_name());
+        if (c == nullptr)
+            return result;
+        if constexpr (std::is_same_v<T, Student>) {
+            for (const auto& person : course_to_student[c]) {
+                T* derivedPerson = dynamic_cast<T*>(person.get());
+                if (derivedPerson != nullptr) {
+                    result.push_back(const_cast<T*>(derivedPerson));
+                }
+            }
+        }
+        else if constexpr (std::is_same_v<T, Teacher>) {
+            for (const auto& person : course_to_teacher[c]) {
                 T* derivedPerson = dynamic_cast<T*>(person.get());
                 if (derivedPerson != nullptr) {
                     result.push_back(const_cast<T*>(derivedPerson));
@@ -293,10 +325,12 @@ public:
         if constexpr (std::is_same_v<T, Student>) {
             auto t = _find<Student>(person->get_name(), person->get_surname());
             course_to_student[c].insert(t);
+            (*t).Student::add_course(c);
             return true;
         } else if constexpr (std::is_same_v<T, Teacher>) {
             auto t = _find<Teacher>(person->get_name(), person->get_surname());
             course_to_teacher[c].insert(t);
+            (*t).Teacher::add_course(c);
             return true;
         }
     }
@@ -304,11 +338,9 @@ public:
     template <typename T>
     bool assign_course(PhDStudent *person, Course *course){
         if constexpr (std::is_same_v<T, Student>) {
-            std::cout << "Student: " << person->get_name() << std::endl;
-            return true;
+            return assign_course((Student*)person, course);
         } else if constexpr (std::is_same_v<T, Teacher>) {
-            std::cout << "Teacher: " << person->get_name() << std::endl;
-            return true;
+            return assign_course((Teacher*)person, course);
         }
     }
 };

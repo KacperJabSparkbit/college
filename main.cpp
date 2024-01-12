@@ -95,25 +95,26 @@ int main() {
     assert(college.assign_course(jacek_chlebus, cxx));
     assert(college.assign_course(jacek_chlebus, algebra));
     assert(college.assign_course(jacek_chlebus, analysis));
-//
-//    assert(college.find<Student>(cxx).size() == 2);
-//    assert(college.find<Student>(algebra).size() == 1);
-//    assert(college.find<Student>(geometry).size() == 0);
-//    assert(college.find<Teacher>(cxx).size() == 2);
-//    assert(college.find<Teacher>(algebra).size() == 1);
-//    assert(college.find<Teacher>(history).size() == 0);
-//
-//    assert(alicja_fiszer->Teacher::get_courses().empty());
-//    auto jacek_courses = jacek_chlebus->get_courses();
-//    assert((*jacek_courses.begin())->get_name() == "Algebra");
-//
-//    for (auto const &c : jacek_courses)
-//        std::clog << c->get_name() << '\n';
-//
+
+    auto dupa = college.find<Student>(cxx);
+    assert(college.find<Student>(cxx).size() == 2);
+    assert(college.find<Student>(algebra).size() == 1);
+    assert(college.find<Student>(geometry).size() == 0);
+    assert(college.find<Teacher>(cxx).size() == 2);
+    assert(college.find<Teacher>(algebra).size() == 1);
+    assert(college.find<Teacher>(history).size() == 0);
+
+    assert(alicja_fiszer->Teacher::get_courses().empty());
+    auto jacek_courses = jacek_chlebus->get_courses();
+    assert((*jacek_courses.begin())->get_name() == "Algebra");
+
+    for (auto const &c : jacek_courses)
+        std::clog << c->get_name() << '\n';
+
 //    assert(algebra->is_active() == true);
 //    college.change_course_activeness(algebra, false);
 //    assert(algebra->is_active() == false);
-//
+
 //    assert(jan_kowalski->is_active() == true);
 //    college.change_student_activeness(jan_kowalski, false);
 //    assert(jan_kowalski->is_active() == false);
