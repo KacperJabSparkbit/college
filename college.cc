@@ -196,15 +196,23 @@ CoursesCollection College::find_courses(const std::string &pattern) {
 
 
 template<>
-WeakPeopleCollection<Student> College::find<Student>(const std::shared_ptr<Course> &course) {
+PeopleCollection<Student> College::find<Student>(const std::shared_ptr<Course> &course) {
     check_course_existence(course);
-    return course->students;
+    PeopleCollection<Student> return_collection;
+    for (auto i : course->students) {
+        return_collection.emplace_hint(return_collection.end(), i.lock());
+    }
+    return return_collection;
 }
 
 template<>
-WeakPeopleCollection<Teacher> College::find<Teacher>(const std::shared_ptr<Course> &course) {
+PeopleCollection<Teacher> College::find<Teacher>(const std::shared_ptr<Course> &course) {
     check_course_existence(course);
-    return course->teachers;
+    PeopleCollection<Teacher> return_collection;
+    for (auto i : course->teachers) {
+        return_collection.emplace_hint(return_collection.end(), i.lock());
+    }
+    return return_collection;
 }
 
 bool College::change_course_activeness(const std::shared_ptr<Course> &course, bool active) {
