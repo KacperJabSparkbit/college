@@ -212,7 +212,9 @@ CoursesCollection College::find_courses(const std::string& pattern) {
 template<>
 PeopleCollection<Student> College::find<Student>(std::shared_ptr<Course> course) {
     if (course->college != this) {
-        throw 42; //exception??
+        //https://moodle.mimuw.edu.pl/mod/forum/discuss.php?d=9377#p20209
+        //nie wiadomo co zrobic wiec na razie jest wyjatek
+        throw std::exception();
     }
     return course->students;
 }
@@ -220,7 +222,7 @@ PeopleCollection<Student> College::find<Student>(std::shared_ptr<Course> course)
 template<>
 PeopleCollection<Teacher> College::find<Teacher>(std::shared_ptr<Course> course) {
     if (course->college != this) {
-        throw 44; //exception??
+        throw std::exception();
     }
     return course->teachers;
 }
@@ -268,20 +270,20 @@ bool College::assign_course_inner(std::shared_ptr<Person> person, std::shared_pt
     }
     
     //osoba nie moze byc studentem i nauczycielem tym samym w kursie??
-    if (course->all_assigned.contains(person)) {
-        return false;
-    }
+    //if (course->all_assigned.contains(person)) {
+    //    return false;
+    //}
 
-    course->all_assigned.emplace(person);
+    //course->all_assigned.emplace(person);
     if constexpr (std::is_same_v<Student, T>) {
         std::dynamic_pointer_cast<Student>(person)->courses.emplace(course);
-        course->students.emplace(std::dynamic_pointer_cast<Student>(person));
+        return course->students.emplace(std::dynamic_pointer_cast<Student>(person)).second;
     } else {
         std::dynamic_pointer_cast<Teacher>(person)->courses.emplace(course);
-        course->teachers.emplace(std::dynamic_pointer_cast<Teacher>(person));
+        return course->teachers.emplace(std::dynamic_pointer_cast<Teacher>(person)).second;
     }
     
-    return true;
+    //return true;
 }
 
 template<>
