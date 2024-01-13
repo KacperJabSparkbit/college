@@ -276,12 +276,11 @@ bool College::assign_course_inner(std::shared_ptr<Person> person, std::shared_pt
             throw std::runtime_error("Incorrect operation on an inactive student");
         }
         std::dynamic_pointer_cast<Student>(person)->courses.emplace(course);
-        course->students.emplace(std::dynamic_pointer_cast<Student>(person));
+        return course->students.emplace(std::dynamic_pointer_cast<Student>(person)).second;
     } else {
         std::dynamic_pointer_cast<Teacher>(person)->courses.emplace(course);
-        course->teachers.emplace(std::dynamic_pointer_cast<Teacher>(person));
+        return course->teachers.emplace(std::dynamic_pointer_cast<Teacher>(person)).second;
     }
-
     return true;
 }
 
