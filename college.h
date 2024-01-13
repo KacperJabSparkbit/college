@@ -13,6 +13,7 @@
 #include <set>
 #include <assert.h> //
 #include <map>
+#include <exception>
 
 class Course;
 class Person;
@@ -93,12 +94,13 @@ class Student : virtual public Person {
 private:
     bool active = true;
     CoursesCollection courses;
+protected:
+    void change_activeness(bool activeness);
 
 public:
     Student(std::string name, std::string surname, bool active = true);
     bool is_active() const;
     const CoursesCollection& get_courses() const;
-    void change_activeness(bool activeness);
 
     friend College;
 };

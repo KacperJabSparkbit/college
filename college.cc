@@ -75,7 +75,6 @@ std::string Person::get_surname() const {
 Student::Student(std::string name, std::string surname, bool active) :
     Person(std::move(name), std::move(surname)) {
     this->active = active;
-    courses.emplace(std::make_shared<Course>("picie piwa"));
 }
 
 bool Student::is_active() const {
@@ -92,7 +91,7 @@ void Student::change_activeness(bool activeness) {
 
 //Teacher:
 Teacher::Teacher(std::string name, std::string surname) :
-    Person(std::move(name), std::move(surname)) {courses.emplace(std::make_shared<Course>("calki"));}
+    Person(std::move(name), std::move(surname)) {}
 
 const CoursesCollection& Teacher::get_courses() const {
     return courses;
@@ -160,7 +159,7 @@ bool College::add_course(std::string name, bool activeness) {
 template<PersonType T>
 void College::append_matching(PeopleCollection<T>& appendable, int containrer_index, std::string name_pattern, std::string surname_pattern) {
     for (auto i : people[containrer_index]) {
-        if (i->get_name() == name_pattern && i->get_surname() == surname_pattern) {
+        if (wildcardMatch(name_pattern, i->get_name()) && wildcardMatch(surname_pattern, i->get_surname())) {
             appendable.emplace(std::dynamic_pointer_cast<T>(i));
         }
     }
@@ -202,7 +201,7 @@ PeopleCollection<PhDStudent> College::find<PhDStudent>(std::string name, std::st
 CoursesCollection College::find_courses(const std::string& pattern) {
     CoursesCollection matching;
     for (auto i : courses) {
-        if (i->get_name() == pattern) {
+        if (wildcardMatch(pattern, i->get_name())) {
             matching.emplace(i);
         }
     }
@@ -242,13 +241,14 @@ bool College::remove_course(std::shared_ptr<Course> course) {
     course->college = nullptr;
     courses.erase(course);
 
-    for (auto i : course->students) {
-        i->courses.erase(course);
-    }
+    //
+    //for (auto i : course->students) {
+    //    i->courses.erase(course);
+    //}
 
-    for (auto i : course->teachers) {
-        i->courses.erase(course);
-    }
+    //for (auto i : course->teachers) {
+    //    i->courses.erase(course);
+    //}
 
     return true;
 }
@@ -263,8 +263,8 @@ bool College::change_student_activeness(std::shared_ptr<Student> student, bool a
 
 template<CollegeMemberNonPhD T>
 bool College::assign_course_inner(std::shared_ptr<Person> person, std::shared_ptr<Course> course) {
-    if (person->college != this || course->college != this) {
-        throw "exception";
+    if (person->college != this || course->college != this || !course->is_active()) {
+        throw std::exception();
     }
     
     //osoba nie moze byc studentem i nauczycielem tym samym w kursie??
@@ -287,7 +287,7 @@ bool College::assign_course_inner(std::shared_ptr<Person> person, std::shared_pt
 template<>
 bool College::assign_course<Student>(std::shared_ptr<Student> person, std::shared_ptr<Course> course) {
     if (!person->is_active()) {
-        throw "exception";
+        throw std::exception();
     }
     return assign_course_inner<Student>(person, course);
 }
