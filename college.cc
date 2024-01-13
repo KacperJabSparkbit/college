@@ -12,20 +12,20 @@ bool CourseComparator::operator()(const std::shared_ptr<Course>& lhs, const std:
 
 
 namespace {
-bool wildcardMatch(const std::string& pattern, const std::string& text) {
-    std::regex star_replace("\\*");
-    std::regex questionmark_replace("\\?");
-    std::regex regexPattern("([.+^=!:${}()|\\[\\]\\/\\\\])");
+    bool wildcardMatch(const std::string& pattern, const std::string& text) {
+        std::regex star_replace("\\*");
+        std::regex questionmark_replace("\\?");
+        std::regex regexPattern("([.+^=!:${}()|\\[\\]\\/\\\\])");
 
-    auto pattern_escaped = regex_replace(pattern, regexPattern, "\\$1");
+        auto pattern_escaped = regex_replace(pattern, regexPattern, "\\$1");
 
-    auto wildcard_pattern = regex_replace(
-            regex_replace(pattern_escaped, star_replace, ".*"),
-            questionmark_replace, ".");
+        auto wildcard_pattern = regex_replace(
+                regex_replace(pattern_escaped, star_replace, ".*"),
+                questionmark_replace, ".");
 
-    std::regex wildcard_regex(wildcard_pattern);
-    return regex_match(text, wildcard_regex);
-}
+        std::regex wildcard_regex(wildcard_pattern);
+        return regex_match(text, wildcard_regex);
+    }
 
 
 
@@ -73,7 +73,7 @@ std::string Person::get_surname() const {
 
 //Student:
 Student::Student(std::string name, std::string surname, bool active) :
-    Person(std::move(name), std::move(surname)) {
+        Person(std::move(name), std::move(surname)) {
     this->active = active;
 }
 
@@ -91,7 +91,7 @@ void Student::change_activeness(bool activeness) {
 
 //Teacher:
 Teacher::Teacher(std::string name, std::string surname) :
-    Person(std::move(name), std::move(surname)) {}
+        Person(std::move(name), std::move(surname)) {}
 
 const CoursesCollection& Teacher::get_courses() const {
     return courses;
@@ -101,10 +101,10 @@ const CoursesCollection& Teacher::get_courses() const {
 
 //PhDStudent:
 PhDStudent::PhDStudent(std::string name, std::string surname, bool active) :
-    Student(std::move(name), std::move(surname), active),
-    Teacher(std::move(name), std::move(surname)) ,
-    Person(name, surname)
-    {};
+        Student(std::move(name), std::move(surname), active),
+        Teacher(std::move(name), std::move(surname)) ,
+        Person(name, surname)
+{};
 
 
 
@@ -212,9 +212,7 @@ CoursesCollection College::find_courses(const std::string& pattern) {
 template<>
 PeopleCollection<Student> College::find<Student>(std::shared_ptr<Course> course) {
     if (course->college != this) {
-        //https://moodle.mimuw.edu.pl/mod/forum/discuss.php?d=9377#p20209
-        //nie wiadomo co zrobic wiec na razie jest wyjatek
-        throw std::exception();
+        throw std::runtime_error("Non-existing course.");
     }
     return course->students;
 }
@@ -222,7 +220,7 @@ PeopleCollection<Student> College::find<Student>(std::shared_ptr<Course> course)
 template<>
 PeopleCollection<Teacher> College::find<Teacher>(std::shared_ptr<Course> course) {
     if (course->college != this) {
-        throw std::exception();
+        throw std::runtime_error("Non-existing course.");
     }
     return course->teachers;
 }
@@ -265,36 +263,45 @@ bool College::change_student_activeness(std::shared_ptr<Student> student, bool a
 
 template<CollegeMemberNonPhD T>
 bool College::assign_course_inner(std::shared_ptr<Person> person, std::shared_ptr<Course> course) {
+    if (person->college != this) {
+        throw std::runtime_error("Non-existing person.");
+    }
     if (person->college != this || course->college != this || !course->is_active()) {
         throw std::exception();
     }
-    
-    //osoba nie moze byc studentem i nauczycielem tym samym w kursie??
-    //if (course->all_assigned.contains(person)) {
-    //    return false;
-    //}
-
-    //course->all_assigned.emplace(person);
+    course->all_assigned.emplace(person);
     if constexpr (std::is_same_v<Student, T>) {
+        auto t = std::dynamic_pointer_cast<Student>(person);
+        if (!t->is_active()) {
+            throw std::runtime_error("Incorrect operation on an inactive student");
+        }
         std::dynamic_pointer_cast<Student>(person)->courses.emplace(course);
         return course->students.emplace(std::dynamic_pointer_cast<Student>(person)).second;
     } else {
         std::dynamic_pointer_cast<Teacher>(person)->courses.emplace(course);
         return course->teachers.emplace(std::dynamic_pointer_cast<Teacher>(person)).second;
     }
-    
-    //return true;
+    return true;
 }
 
 template<>
 bool College::assign_course<Student>(std::shared_ptr<Student> person, std::shared_ptr<Course> course) {
-    if (!person->is_active()) {
-        throw std::exception();
+    if (course->college != this) {
+        throw std::runtime_error("Non-existing course.");
+    }
+    if (!course->is_active()) {
+        throw std::runtime_error("Incorrect operation on an inactive course");
     }
     return assign_course_inner<Student>(person, course);
 }
 
 template<>
 bool College::assign_course<Teacher>(std::shared_ptr<Teacher> person, std::shared_ptr<Course> course) {
+    if (course->college != this) {
+        throw std::runtime_error("Non-existing course.");
+    }
+    if (!course->is_active()) {
+        throw std::runtime_error("Incorrect operation on an inactive course");
+    }
     return assign_course_inner<Teacher>(person, course);
 }
