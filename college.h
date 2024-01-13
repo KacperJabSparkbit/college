@@ -54,7 +54,6 @@ private:
     std::string name;
     bool active = true;
     College* college;
-    //PeopleCollection<Person> all_assigned;
     PeopleCollection<Student> students;
     PeopleCollection<Teacher> teachers;
 

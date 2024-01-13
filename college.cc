@@ -1,4 +1,5 @@
 #include "college.h"
+#include <limits>
 
 bool PeopleComparator::operator()(const std::shared_ptr<Person>& lhs, const std::shared_ptr<Person>& rhs) const {
     if (lhs->get_surname() == rhs->get_surname())
@@ -12,23 +13,20 @@ bool CourseComparator::operator()(const std::shared_ptr<Course>& lhs, const std:
 
 
 namespace {
-    bool wildcardMatch(const std::string& pattern, const std::string& text) {
-        std::regex star_replace("\\*");
-        std::regex questionmark_replace("\\?");
-        std::regex regexPattern("([.+^=!:${}()|\\[\\]\\/\\\\])");
+bool wildcardMatch(const std::string& pattern, const std::string& text) {
+    std::regex star_replace("\\*");
+    std::regex questionmark_replace("\\?");
+    std::regex regexPattern("([.+^=!:${}()|\\[\\]\\/\\\\])");
 
-        auto pattern_escaped = regex_replace(pattern, regexPattern, "\\$1");
+    auto pattern_escaped = regex_replace(pattern, regexPattern, "\\$1");
 
-        auto wildcard_pattern = regex_replace(
-                regex_replace(pattern_escaped, star_replace, ".*"),
-                questionmark_replace, ".");
+    auto wildcard_pattern = regex_replace(
+            regex_replace(pattern_escaped, star_replace, ".*"),
+            questionmark_replace, ".");
 
-        std::regex wildcard_regex(wildcard_pattern);
-        return regex_match(text, wildcard_regex);
-    }
-
-
-
+    std::regex wildcard_regex(wildcard_pattern);
+    return regex_match(text, wildcard_regex);
+}
 
 } //namespace
 
@@ -155,9 +153,17 @@ bool College::add_course(std::string name, bool activeness) {
 }
 
 
-//na razie wyszukuje po pelnym imieniu i nazwisku i liniowo
 template<PersonType T>
 void College::append_matching(PeopleCollection<T>& appendable, int containrer_index, std::string name_pattern, std::string surname_pattern) {
+    if (name_pattern.find_first_of("*?") == std::string::npos &&
+      surname_pattern.find_first_of("*?") == std::string::npos) {
+        auto iter = people[containrer_index].find(std::make_shared<Person>(name_pattern, surname_pattern));
+        if (iter != people[containrer_index].end()) {
+            appendable.emplace(std::dynamic_pointer_cast<T>(*iter));
+        }
+        return;
+    }
+    
     for (auto i : people[containrer_index]) {
         if (wildcardMatch(name_pattern, i->get_name()) && wildcardMatch(surname_pattern, i->get_surname())) {
             appendable.emplace(std::dynamic_pointer_cast<T>(i));
@@ -197,9 +203,18 @@ PeopleCollection<PhDStudent> College::find<PhDStudent>(std::string name, std::st
     return(matches);
 }
 
-//again nie wyszukuje po patternie
+
 CoursesCollection College::find_courses(const std::string& pattern) {
     CoursesCollection matching;
+
+    if (pattern.find_first_of("*?") == std::string::npos) {
+        auto iter = courses.find(std::make_shared<Course>(pattern));
+        if (iter != courses.end()) {
+            matching.emplace(*iter);
+        }
+        return matching;
+    }
+
     for (auto i : courses) {
         if (wildcardMatch(pattern, i->get_name())) {
             matching.emplace(i);
@@ -241,15 +256,6 @@ bool College::remove_course(std::shared_ptr<Course> course) {
     course->college = nullptr;
     courses.erase(course);
 
-    //
-    //for (auto i : course->students) {
-    //    i->courses.erase(course);
-    //}
-
-    //for (auto i : course->teachers) {
-    //    i->courses.erase(course);
-    //}
-
     return true;
 }
 
@@ -266,10 +272,14 @@ bool College::assign_course_inner(std::shared_ptr<Person> person, std::shared_pt
     if (person->college != this) {
         throw std::runtime_error("Non-existing person.");
     }
-    if (person->college != this || course->college != this || !course->is_active()) {
-        throw std::exception();
+    if (course->college != this) {
+        
+        throw std::runtime_error("Non-existing course.");
     }
-    course->all_assigned.emplace(person);
+    if (!course->is_active()) {
+        throw std::runtime_error("Incorrect operation on an inactive course");
+    }
+    
     if constexpr (std::is_same_v<Student, T>) {
         auto t = std::dynamic_pointer_cast<Student>(person);
         if (!t->is_active()) {
