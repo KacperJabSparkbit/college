@@ -293,12 +293,10 @@ void College::check_course_existence(const std::shared_ptr<Course> &course) {
 
 template<>
 bool College::assign_course<Student>(const std::shared_ptr<Student> &person, const std::shared_ptr<Course> &course) {
-    check_course(course);
     return assign_course_inner<Student>(person, course);
 }
 
 template<>
 bool College::assign_course<Teacher>(const std::shared_ptr<Teacher> &person, const std::shared_ptr<Course> &course) {
-    check_course(course);
     return assign_course_inner<Teacher>(person, course);
 }
